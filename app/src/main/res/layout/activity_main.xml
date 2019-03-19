@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        tools:context=".MainActivity">
+
+    <android.support.v7.widget.Toolbar
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary"
+            android:theme="?attr/actionBarTheme"
+            android:minHeight="?attr/actionBarSize"
+            android:id="@+id/main_toolbar">
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:weightSum="1"
+                      android:padding="0dp">
+
+            <EditText android:layout_width="wrap_content" android:layout_height="match_parent"
+                      android:id="@+id/search_editText"
+                      android:layout_weight="0.6"
+                      android:inputType="text"
+                      android:ems="10"
+                      android:hint="Search for images..."/>
+
+            <ImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/outline_search_24"
+                    android:layout_gravity="center_vertical"
+                    android:background="@android:color/transparent"
+                    android:layout_weight="0.2"
+                    android:id="@+id/search"/>
+
+            <ImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/outline_grade_24"
+                    android:background="@android:color/transparent"
+                    android:layout_weight="0.2"
+                    android:id="@+id/favorites"/>
+
+        </LinearLayout>
+
+    </android.support.v7.widget.Toolbar>
+
+    <android.support.v7.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/recyclerView"/>
+
+</LinearLayout>
