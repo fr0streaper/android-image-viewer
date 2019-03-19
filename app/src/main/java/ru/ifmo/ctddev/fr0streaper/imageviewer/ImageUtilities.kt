@@ -7,12 +7,18 @@ import android.util.Log
 import android.widget.Toast
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
 import ru.ifmo.ctddev.fr0streaper.imageviewer.database.Database
 import ru.ifmo.ctddev.fr0streaper.imageviewer.database.FavoriteImage
 import java.net.URL
@@ -43,7 +49,7 @@ class ImageUtilities {
 
         private fun getFavoritesPage(page: Int): List<Image> {
             val favoriteImages =
-                database.favoritesDAO().getFavoritesRange((page - 1) * PHOTOS_PER_PAGE + 1, page * PHOTOS_PER_PAGE)
+                database.favoritesDAO().getFavoritesRange((page - 1) * PHOTOS_PER_PAGE, PHOTOS_PER_PAGE)
             val result = mutableListOf<Image>()
             favoriteImages.mapTo(result) { favoriteImage -> imageFromString(favoriteImage.serializedImage) }
             return result
@@ -66,24 +72,6 @@ class ImageUtilities {
             }
         }
 
-        private fun constructQuery(page: Int, query: String): HttpUrl {
-            val url = if (query.isEmpty()) "${UNSPLASH_API_URL}photos" else "${UNSPLASH_API_URL}search/photos"
-
-            val requestBuilder = HttpUrl.parse(url)!!.newBuilder()
-
-            if (!query.isEmpty()) {
-                requestBuilder.addQueryParameter("query", query)
-            }
-
-            requestBuilder
-                .addQueryParameter("page", page.toString())
-                .addQueryParameter("per_page", PHOTOS_PER_PAGE.toString())
-                .addQueryParameter("client_id", UNSPLASH_API_ACCESS_KEY)
-
-
-            return requestBuilder.build()
-        }
-
         fun downloadImageByURL(imageURL: String?): Bitmap? {
             val url = URL(imageURL)
 
@@ -91,41 +79,43 @@ class ImageUtilities {
         }
 
         fun downloadRegularImage(context: Context, image: Image, receiver: ImageLoaderServiceReceiver) {
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    ImageLoaderService.downloadImages(context.applicationContext, mutableListOf(image), receiver, true)
-                } catch (e: Exception) {
-                    Log.d(LOG_TAG, "Unable to download images; Exception: $e")
-                }
-            }
+            ImageLoaderService.downloadImages(context.applicationContext, mutableListOf(image), receiver, true)
+        }
+
+        private fun onServerRequestFailed(context: Context) {
+            Log.d(LOG_TAG, "Server request failure")
+            Toast.makeText(context, "Server request failed", Toast.LENGTH_SHORT).show()
         }
 
         fun downloadPreviewList(context: Context, page: Int, receiver: ImageLoaderServiceReceiver, query: String = "") {
-            val jsonQuery = constructQuery(page, query)
+                val retrofit = Retrofit.Builder()
+                .baseUrl(UNSPLASH_API_URL)
+                .addConverterFactory(MoshiConverterFactory.create())
+                .build()
+                .create(HttpRequestService::class.java)
 
             GlobalScope.launch(Dispatchers.IO) {
                 try {
-                    val builder = OkHttpClient.Builder()
-                    val client = builder.build()
-                    val request = Request.Builder().url(jsonQuery).build()
-                    val response = client.newCall(request).execute()
+                    if (query.isEmpty()) {
+                        retrofit.getDefaultImagePage(page).enqueue(object : Callback<List<Image>> {
+                            override fun onFailure(call: Call<List<Image>>, t: Throwable) = onServerRequestFailed(context)
 
-                    if (response.code() != 200) {
-                        Log.d(LOG_TAG, "Server request failure")
-                        GlobalScope.launch(Dispatchers.Main) {
-                            Toast.makeText(context, "Server request failed", Toast.LENGTH_SHORT).show()
-                        }
-                        return@launch
+                            override fun onResponse(call: Call<List<Image>>, response: Response<List<Image>>) {
+                                ImageLoaderService.downloadImages(context.applicationContext, response.body()!!, receiver, false)
+                            }
+                        })
                     }
+                    else {
+                        retrofit.getSearchImagePage(query, page).enqueue(object : Callback<SearchResult> {
+                            override fun onFailure(call: Call<SearchResult>, t: Throwable) = onServerRequestFailed(context)
 
-                    val dataset: List<Image> = if (query.isEmpty()) {
-                        jacksonObjectMapper().readValue(response.body()?.string()!!)
-                    } else {
-                        val node = jacksonObjectMapper().readTree(response.body()?.string()!!).get("results")
-                        jacksonObjectMapper().readValue(node.toString())
+                            override fun onResponse(call: Call<SearchResult>, response: Response<SearchResult>) {
+                                val node = jacksonObjectMapper().readTree(response.body()!!.toString()).toString()
+                                val dataset = jacksonObjectMapper().readValue<SearchResult>(node).results
+                                ImageLoaderService.downloadImages(context.applicationContext, dataset!!, receiver, false)
+                            }
+                        })
                     }
-
-                    ImageLoaderService.downloadImages(context.applicationContext, dataset, receiver, false)
                 } catch (e: Exception) {
                     Log.d(LOG_TAG, "Unable to download images; Exception: $e")
                 }

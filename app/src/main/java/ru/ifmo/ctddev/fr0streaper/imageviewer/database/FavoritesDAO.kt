@@ -14,8 +14,8 @@ interface FavoritesDAO {
     @Delete
     fun delete(favoriteImage: FavoriteImage)
 
-    @Query("SELECT * FROM favorites LIMIT (:limit) OFFSET (:offset)")
-    fun getFavoritesRange(offset: Int, limit: Int): List<FavoriteImage>
+    @Query("SELECT * FROM favorites LIMIT (:offset), (:count)")
+    fun getFavoritesRange(offset: Int, count: Int): List<FavoriteImage>
 
     @Query("SELECT * FROM favorites WHERE imageId = (:imageId)")
     fun getFavorite(imageId: String): List<FavoriteImage>

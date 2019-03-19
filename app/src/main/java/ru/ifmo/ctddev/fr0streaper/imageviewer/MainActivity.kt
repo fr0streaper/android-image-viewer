@@ -7,6 +7,9 @@ import android.os.Handler
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import android.widget.Toast
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlinx.android.synthetic.main.activity_main.*
 import ru.ifmo.ctddev.fr0streaper.imageviewer.database.Database
 
@@ -39,6 +42,8 @@ class MainActivity : AppCompatActivity(), ImageLoaderServiceReceiver.Receiver {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
         ImageUtilities.database = Room.databaseBuilder(this, Database::class.java, "favorites").build()
 
