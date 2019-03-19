@@ -1,7 +1,6 @@
 package ru.ifmo.ctddev.fr0streaper.imageviewer
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -10,6 +9,18 @@ import java.io.FileOutputStream
 class InternalStorageUtilities {
 
     companion object {
+
+        fun fromInternalStorage(path: String?, imageId: String?): File? {
+            if (path == null || imageId == null) {
+                return null
+            }
+
+            if (!File("$path/").exists()) {
+                File("$path/").mkdir()
+            }
+
+            return File("$path/$imageId.jpg")
+        }
 
         fun saveToInternalStorage(imagePath: String, image: Bitmap) {
             try {

@@ -16,7 +16,12 @@ class ImageLoaderService : IntentService("ImageLoaderService") {
     companion object {
 
         @JvmStatic
-        fun downloadImages(context: Context, dataset: List<Image>, receiver: ImageLoaderServiceReceiver, isRegular: Boolean) {
+        fun downloadImages(
+            context: Context,
+            dataset: List<Image>,
+            receiver: ImageLoaderServiceReceiver,
+            isRegular: Boolean
+        ) {
             val intent = Intent(context, ImageLoaderService::class.java)
 
             intent.action = "ACTION_LOAD_IMAGES"
@@ -49,24 +54,20 @@ class ImageLoaderService : IntentService("ImageLoaderService") {
         val folder = if (isRegular) "regular" else "previews"
 
         for (image in dataset) {
-            val file = File("$path/$folder/${image.id}.jpg")
-
-            if (!File("$path/$folder/").exists()) {
-                File("$path/$folder/").mkdir()
-            }
+            val file = InternalStorageUtilities.fromInternalStorage("$path/$folder", image.id)!!
 
             if (!file.exists()) {
                 val downloadedImage = ImageUtilities.downloadImageByURL(
                     if (isRegular) image.urls?.regular
-                    else image.urls?.small)
+                    else image.urls?.small
+                )
 
                 if (downloadedImage != null) {
                     InternalStorageUtilities.saveToInternalStorage(file.absolutePath, downloadedImage)
 
                     if (isRegular) {
                         image.localRegularPath = file.absolutePath
-                    }
-                    else {
+                    } else {
                         image.localPreviewPath = file.absolutePath
                     }
 
@@ -81,8 +82,7 @@ class ImageLoaderService : IntentService("ImageLoaderService") {
             } else {
                 if (isRegular) {
                     image.localRegularPath = file.absolutePath
-                }
-                else {
+                } else {
                     image.localPreviewPath = file.absolutePath
                 }
 

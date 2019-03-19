@@ -1,6 +1,5 @@
 package ru.ifmo.ctddev.fr0streaper.imageviewer
 
-import android.app.Activity
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
@@ -8,14 +7,13 @@ import android.support.v4.app.DialogFragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.bumptech.glide.Glide
 import kotlinx.android.synthetic.main.image_detail.view.*
-import java.util.concurrent.Executors
 
 class ImageDetailFragment : DialogFragment(), ImageLoaderServiceReceiver.Receiver {
 
     lateinit var image: Image
     lateinit var createdView: View
-    private val executor = Executors.newFixedThreadPool(4)
     var receiver: ImageLoaderServiceReceiver? = ImageLoaderServiceReceiver(Handler())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,14 +61,14 @@ class ImageDetailFragment : DialogFragment(), ImageLoaderServiceReceiver.Receive
         when (resultCode) {
             200 -> {
                 image = data.getSerializable("image") as Image
-                executor.execute {
-                    val regular = BitmapFactory.decodeFile(image.localRegularPath)
-                    (this@ImageDetailFragment.context as Activity).runOnUiThread {
-                        createdView.image_regular.setImageBitmap(regular)
-                        createdView.toolbar.title = image.user?.name
-                        createdView.progress_circular.visibility = View.INVISIBLE
-                    }
-                }
+
+                Glide.with(this)
+                    .asBitmap()
+                    .load(image.localRegularPath)
+                    .into(createdView.image_regular)
+
+                createdView.detail_toolbar.title = image.user?.name
+                createdView.progress_circular.visibility = View.INVISIBLE
             }
         }
     }
